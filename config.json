@@ -1,0 +1,21 @@
+{
+    "relays": [{
+        "name": "survival0",
+        "display_name": "Snapshot Survival",
+        "server_folder": "./",
+        "server_info": {
+            "ip": "squirrelworld.net",
+            "port": 25565,
+            "rcon_port": 25566,
+            "rcon_password": "cjbrittain42"
+        },
+        "connections": {
+            "chat_relay": {
+                "webhook": "https://canary.discordapp.com/api/webhooks/619266288807837728/RtOLeofP6LMuj7-J96lMGwKLLGgAsSYhH90InepsKCs6jk2hXlj7w4p49C3uQh-aW9Xz"
+            },
+            "console_relay": {
+                "webhook": "https://canary.discordapp.com/api/webhooks/621433182713282590/P21jCCKnu8pkATf4e0GOzFzEDBEjae3i-bAmryLPgzlHxLD519yDR4-Fk_LL6pcJrHca"
+            }
+        }
+    }]
+}
