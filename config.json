@@ -7,7 +7,7 @@
             "ip": "squirrelworld.net",
             "port": 25565,
             "rcon_port": 25566,
-            "rcon_password": "cjbrittain42"
+            "rcon_password": "somepassword"
         },
         "connections": {
             "chat_relay": {
