@@ -11,8 +11,8 @@
         },
         "connections": {
             "chat_relay": {
-                "webhook": "https://canary.discordapp.com/api/webhooks/aaa/aaa",
-                "channel_id": 500862540629147648,
+                "webhook": "https://canary.discordapp.com/api/webhooks/",
+                "channel_id": 111111111111111111,
                 "message_formats": {
                     "player_message": "<:Minecraft:580859447409246223> `<$PREFIX$$USERNAME$> $CONTENT$`",
                     "player_/me": "<:Minecraft:580859447409246223> :asterisk: `$PREFIX$$USERNAME$ $CONTENT$`",
@@ -25,8 +25,8 @@
                 }
             },
             "console_relay": {
-                "webhook": "https://canary.discordapp.com/api/webhooks/aaa/aaa",
-                "channel_id": 501755544621547523,
+                "webhook": "https://canary.discordapp.com/api/webhooks/",
+                "channel_id": 111111111111111111,
                 "message_formats": {
                     "player_message": "<:Minecraft:580859447409246223> :speech_balloon: `<$PREFIX$$USERNAME$> $CONTENT$`",
                     "player_/me": "<:Minecraft:580859447409246223> :speech_balloon: :asterisk: `$PREFIX$$USERNAME$ $CONTENT$`",
@@ -43,19 +43,7 @@
                     "server_overloaded": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> :warning: `Server overloaded: Falling $MILLISECONDS$ms ($TICKS$ ticks) behind`",
                     "player_disconnection_info": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> <:left:580872521599942683> `$USERNAME$ ($IP$:$PORT$) lost connection: $REASON$`",
                     "player_trigger": "<:Minecraft:580859447409246223> <:terminal:639905454692106270>  `$USERNAME$ triggered $OBJECTIVE$ value: $VALUE$`"
-                },
-                "permitted_commands": [
-                    "advancement",
-                    "scoreboard",
-                    "tellraw",
-                    "reload",
-                    "summon",
-                    "give",
-                    "time",
-                    "tag",
-                    "say",
-                    "tp"
-                ]
+                }
             }
         }
     }]
