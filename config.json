@@ -2,19 +2,60 @@
     "relays": [{
         "name": "survival0",
         "display_name": "Snapshot Survival",
-        "server_folder": "./",
+        "server_folder": "/home/snavesutit/squirrelworld/survival0/server/",
         "server_info": {
             "ip": "squirrelworld.net",
             "port": 25565,
             "rcon_port": 25566,
-            "rcon_password": "somepassword"
+            "rcon_password": "password"
         },
         "connections": {
             "chat_relay": {
-                "webhook": ""
+                "webhook": "https://canary.discordapp.com/api/webhooks/aaa/aaa",
+                "channel_id": 500862540629147648,
+                "message_formats": {
+                    "player_message": "<:Minecraft:580859447409246223> `<$PREFIX$$USERNAME$> $CONTENT$`",
+                    "player_/me": "<:Minecraft:580859447409246223> :asterisk: `$PREFIX$$USERNAME$ $CONTENT$`",
+                    "player_change": "<:Minecraft:580859447409246223> $ACTION_EMOJI$ `<$PREFIX$$USERNAME$> $ACTION$ the game`",
+                    "server_starting": "<:Minecraft:580859447409246223> :checkered_flag: `Server Booting on $VERSION$...`",
+                    "server_started": "<:Minecraft:580859447409246223> <:Yes:470083288829001751> `Server is Online! (Booted in $TIME$)...`",
+                    "server_stopped": "<:Minecraft:580859447409246223> <:Restart:574966824874147840> `Server is Rebooting...`",
+                    "discord_message": "<:Discord:580859447375560709> `<$PREFIX$$USERNAME$> $CONTENT$`",
+                    "in-game_message": "tellraw @a [{\"text\":\"<\",\"color\":\"blue\"},$PREFIX$,$USERNAME$,{\"text\":\"> \",\"color\":\"blue\"},$CONTENT$]"
+                }
             },
             "console_relay": {
-                "webhook": ""
+                "webhook": "https://canary.discordapp.com/api/webhooks/aaa/aaa",
+                "channel_id": 501755544621547523,
+                "message_formats": {
+                    "player_message": "<:Minecraft:580859447409246223> :speech_balloon: `<$PREFIX$$USERNAME$> $CONTENT$`",
+                    "player_/me": "<:Minecraft:580859447409246223> :speech_balloon: :asterisk: `$PREFIX$$USERNAME$ $CONTENT$`",
+                    "player_change": "<:Minecraft:580859447409246223> :speech_balloon: $ACTION_EMOJI$ `<$PREFIX$$USERNAME$> $ACTION$ the game`",
+                    "server_starting": "<:Minecraft:580859447409246223> :speech_balloon: :checkered_flag: `Server Booting on $VERSION$...`",
+                    "server_started": "<:Minecraft:580859447409246223> :speech_balloon: <:Yes:470083288829001751> `Server is Online! (Booted in $TIME$)...`",
+                    "server_stopped": "<:Minecraft:580859447409246223> :speech_balloon: <:Restart:574966824874147840> `Server is Rebooting...`",
+                    "discord_message": "<:Discord:580859447375560709> :speech_balloon: `<$PREFIX$$USERNAME$> $CONTENT$`",
+                    "authentication_uuid": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> `$USERNAME$'s UUID is $UUID$`",
+                    "authentication_info": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> `$USERNAME$ Logged in though` :computer: `$IP$:$PORT$ at` :radio_button: `$POS$ with entity id $ENTITY_ID$`",
+                    "rcon_connection": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> <:rcon:581164629523300362> `Rcon connection from $IP$`",
+                    "player_moved_wrongly": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> :warning: `$USERNAME$ Moved wrongly!`",
+                    "player_moved_too_quickly": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> :warning: `$USERNAME$ Moved too quickly! ($POS$)`",
+                    "server_overloaded": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> :warning: `Server overloaded: Falling $MILLISECONDS$ms ($TICKS$ ticks) behind`",
+                    "player_disconnection_info": "<:Minecraft:580859447409246223> <:terminal:639905454692106270> <:left:580872521599942683> `$USERNAME$ ($IP$:$PORT$) lost connection: $REASON$`",
+                    "player_trigger": "<:Minecraft:580859447409246223> <:terminal:639905454692106270>  `$USERNAME$ triggered $OBJECTIVE$ value: $VALUE$`"
+                },
+                "permitted_commands": [
+                    "advancement",
+                    "scoreboard",
+                    "tellraw",
+                    "reload",
+                    "summon",
+                    "give",
+                    "time",
+                    "tag",
+                    "say",
+                    "tp"
+                ]
             }
         }
     }]

@@ -17,7 +17,7 @@ def regex(reg, text):
 	except (AttributeError, ValueError):
 		return False
 
-class ChatRelay():
+class ConsoleRelay():
 	def parse_player_message(self, comp):
 		prefix = comp['prefix']+" " if comp.get('prefix') else ""
 		content = self.message_formats['player_message']
@@ -37,7 +37,6 @@ class ChatRelay():
 		return {"content":content}
 
 	def parse_player_change(self, comp):
-		print(comp)
 		prefix = comp['prefix']+" " if comp.get('prefix') else ""
 		content = self.message_formats['player_change']
 		content = content\
@@ -63,11 +62,82 @@ class ChatRelay():
 		content = self.message_formats['server_stopped']
 		return {"content":content}
 
+	def parse_authentication_uuid(self, comp):
+		prefix = comp['prefix']+" " if comp.get('prefix') else ""
+		content = self.message_formats['authentication_uuid']
+		content = content\
+			.replace("$PREFIX$", prefix)\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$UUID$", comp['uuid'])
+		return {"content":content}
 
-	def __init__(self, relay):
+	def parse_authentication_info(self, comp):
+		prefix = comp['prefix']+" " if comp.get('prefix') else ""
+		content = self.message_formats['authentication_info']
+		content = content\
+			.replace("$PREFIX$", prefix)\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$IP$", comp['ip'])\
+			.replace("$PORT$", comp['port'])\
+			.replace("$ENTITY_ID$", comp['entity_id'])\
+			.replace("$POS$", comp['pos'])
+		return {"content":content}
+
+	def parse_rcon_connection(self, comp):
+		content = self.message_formats['rcon_connection']
+		content = content\
+			.replace("$IP$", comp['ip'])
+		return {"content":content}
+
+	def parse_player_moved_wrongly(self, comp):
+		content = self.message_formats['player_moved_wrongly']
+		content = content\
+			.replace("$USERNAME$", comp['username'])
+		return {"content":content}
+
+	def parse_player_moved_too_quickly(self, comp):
+		content = self.message_formats['player_moved_too_quickly']
+		content = content\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$POS$", ' '.join(comp['pos'].split(',')))
+		return {"content":content}
+
+	def parse_server_overloaded(self, comp):
+		content = self.message_formats['server_overloaded']
+		content = content\
+			.replace("$MILLISECONDS$", comp['milliseconds'])\
+			.replace("$TICKS$", comp['ticks'])
+		return {"content":content}
+
+	def parse_player_disconnection_info(self, comp):
+		content = self.message_formats['player_disconnection_info']
+		properties = comp['properties'] if comp['properties'] else ""
+		content = content\
+			.replace("$ID$", comp['id'])\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$PROPERTIES$", properties)\
+			.replace("$LEGACY$", comp['legacy'])\
+			.replace("$IP$", comp['ip'])\
+			.replace("$PORT$", comp['port'])\
+			.replace("$REASON$", comp['reason'])
+		return {"content":content}
+
+	def parse_player_trigger(self, comp):
+		content = self.message_formats['player_trigger']
+		value = comp['value'] if comp['value'] else "1"
+		content = content\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$OBJECTIVE$", comp['objective'])\
+			.replace("$VALUE$", value)
+		return {"content":content}
+
+	def update_config(self, relay):
 		self.relay = relay
 		self.connection_info = relay['server_info']
-		self.message_formats = relay['connections']['chat_relay']['message_formats']
+		self.message_formats = relay['connections']['console_relay']['message_formats']
+
+	def __init__(self, relay):
+		self.update_config(relay)
 		self._lock = threading.Lock()
 		self.FINISH = False
 
@@ -111,6 +181,54 @@ class ChatRelay():
 			"message_type":"INFO",
 			"regex":re.compile(r"^Starting minecraft server version (?P<version>.+)"),
 			"parser":self.parse_server_starting
+			},
+			"player_authentication_uuid":{
+			"thread_name":"User Authenticator",
+			"message_type":"INFO",
+			"regex":re.compile(r"^UUID of player (?P<prefix>\[[^\]>]+\])? ?(?P<username>[^\]>]+) is (?P<uuid>.+$)"),
+			"parser":self.parse_authentication_uuid
+			},
+			"player_authentication_info":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"^(?P<username>.+)\[\/(?P<ip>[\d\.]+)\:(?P<port>\d+)\] logged in with entity id (?P<entity_id>\d+) at \((?P<pos>[\d\.-]+, [\d\.-]+, [\d\.-]+)\)"),
+			"parser":self.parse_authentication_info
+			},
+			"rcon_connection":{
+			"thread_name":"RCON Listener",
+			"message_type":"INFO",
+			"regex":re.compile(r"^Rcon connection from: \/(?P<ip>[\d.]+)"),
+			"parser":self.parse_rcon_connection
+			},
+			"player_moved_wrongly":{
+			"thread_name":"Server thread",
+			"message_type":"WARN",
+			"regex":re.compile(r"^(?P<username>\S+) moved wrongly!$"),
+			"parser":self.parse_player_moved_wrongly
+			},
+			"player_moved_too_quickly":{
+			"thread_name":"Server thread",
+			"message_type":"WARN",
+			"regex":re.compile(r"^(?P<username>\w+) moved too quickly! (?P<pos>[\d.]+,[\d.]+,[\d.]+)"),
+			"parser":self.parse_player_moved_too_quickly
+			},
+			"server_overloaded":{
+			"thread_name":"Server thread",
+			"message_type":"WARN",
+			"regex":re.compile(r"^Can't keep up! Is the server overloaded\? Running (?P<milliseconds>\d+)ms or (?P<ticks>\d+) ticks behind"),
+			"parser":self.parse_server_overloaded
+			},
+			"player_disconnection_info":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"^com\.mojang\.authlib\.GameProfile@\w+\[id=<(?P<id>[^>]+)>,name=(?P<username>[^,]+),properties=\{(?P<properties>[^\}]+)?\},legacy=(?P<legacy>true|false)\] \(\/(?P<ip>[\d\.]+)\:(?P<port>\d+)\) lost connection: (?P<reason>.+)"),
+			"parser":self.parse_player_disconnection_info
+			},
+			"player_trigger":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"\[(?P<username>.+?): Triggered \[(?P<objective>[^\]]+)\](\]| \(set value to (?P<value>\d+)\)\])"),
+			"parser":self.parse_player_trigger
 			}
 		}
 
@@ -129,7 +247,7 @@ class ChatRelay():
 			self.FINISH = True
 
 	def send(self, content):
-		r = http.urlopen('POST', self.relay['connections']['chat_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
+		r = http.urlopen('POST', self.relay['connections']['console_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
 		if r.data != b'':
 			f = json.loads(r.data)
 			f = f['retry_after'] / 1000
@@ -168,7 +286,7 @@ class ChatRelay():
 
 	def parser_thread(self):
 
-		log_prefix = re.compile(r"\[(?P<timestamp>[\d:]+)\] \[(?P<full_prefix>(?P<type>Server thread|RCON Listener|User Authenticator) ?(?P<thread_id>#\d+)?\/(?P<info_type>INFO|WARN))\]: (?P<message>.+)")
+		log_prefix = re.compile(r"\[(?P<timestamp>[\d:]+)\] \[(?P<full_prefix>(?P<type>Server thread|RCON Listener|User Authenticator|main) ?(?P<thread_id>#\d+)?\/(?P<info_type>INFO|WARN))\]: (?P<message>.+)")
 		local_que = []
 		local_output = []
 
@@ -193,7 +311,6 @@ class ChatRelay():
 
 				for k, v in self.log_formats.items():
 					if v['thread_name'] == thread_name and v['message_type'] == message_type:
-						#match = regex(v['regex'], message.strip())
 						if match := regex(v['regex'], message.strip()):
 							x = v['parser'](match)
 							print(x)
