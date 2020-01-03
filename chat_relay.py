@@ -17,6 +17,9 @@ def regex(reg, text):
 	except (AttributeError, ValueError):
 		return False
 
+def clean_text(text):
+	return text.replace('"', '\\"')
+
 class ChatRelay():
 	def parse_player_message(self, comp):
 		prefix = comp['prefix']+" " if comp.get('prefix') else ""
@@ -37,7 +40,7 @@ class ChatRelay():
 		return {"content":content}
 
 	def parse_player_change(self, comp):
-		print(comp)
+		#print(comp)
 		prefix = comp['prefix']+" " if comp.get('prefix') else ""
 		content = self.message_formats['player_change']
 		content = content\
@@ -54,6 +57,7 @@ class ChatRelay():
 		return {"content":content}
 
 	def parse_server_started(self, comp):
+		self.chunk_update_in_progress = False
 		content = self.message_formats['server_started']
 		content = content\
 			.replace("$TIME$", comp['time'])
@@ -63,6 +67,37 @@ class ChatRelay():
 		content = self.message_formats['server_stopped']
 		return {"content":content}
 
+	def parse_chunk_update_init(self, comp):
+		self.chunk_update_in_progress = True
+		content = self.message_formats['chunk_update_init']
+		return {"content":content}
+
+	def parse_chunk_update_prep(self, comp):
+		content = self.message_formats['chunk_update_prep']
+		return {"content":content}
+
+	def parse_chunk_update_progress(self, comp):
+		if comp['perc_completed'] != self.last_upgrade_perc and self.chunk_update_in_progress:
+			self.last_upgrade_perc = comp['perc_completed']
+			content = self.message_formats['chunk_update_progress']
+			content = content\
+				.replace("$PERC_COMPLTED$", comp['perc_completed'])\
+				.replace("$UPDATED_CHUNKS$", comp['updated_chunks'])\
+				.replace("$TOTAL_CHUNKS$", comp['total_chunks'])
+			return {"content":content}
+		else:
+			return False
+
+	def parse_player_banned_message(self, comp):
+		content = self.message_formats['player_banned_message']
+		content = content\
+			.replace("$PREFIX$", comp['prefix'])\
+			.replace("$USERNAME$", comp['username'])\
+			.replace("$BANNED_PLAYER$", comp['banned_player'])\
+			.replace("$REASON$", comp['reason'])\
+			.replace("$LENGTH$", comp['length'])
+		return {"content":content}
+
 
 	def __init__(self, relay):
 		self.relay = relay
@@ -70,6 +105,8 @@ class ChatRelay():
 		self.message_formats = relay['connections']['chat_relay']['message_formats']
 		self._lock = threading.Lock()
 		self.FINISH = False
+		self.last_upgrade_perc = 0
+		self.chunk_update_in_progress = False
 
 		self.parser_que = []
 		self.sender_que = []
@@ -111,6 +148,30 @@ class ChatRelay():
 			"message_type":"INFO",
 			"regex":re.compile(r"^Starting minecraft server version (?P<version>.+)"),
 			"parser":self.parse_server_starting
+			},
+			"chunk_update_init":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"^(?P<placeholder>Upgrading) all chunks\.\.\."),
+			"parser":self.parse_chunk_update_init
+			},
+			"chunk_update_prep":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"^(?P<placeholder>Forcing) world upgrade"),
+			"parser":self.parse_chunk_update_prep
+			},
+			"chunk_update_progress":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"^(?P<perc_completed>\d+)% completed \((?P<updated_chunks>\d+) \/ (?P<total_chunks>\d+) chunks\)\.\.\."),
+			"parser":self.parse_chunk_update_progress
+			},
+			"player_banned_message":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":re.compile(r"\[\[(?P<prefix>[^\]]+)\] (?P<username>[_a-zA-Z0-9]+): Banned (?P<banned_player>[_a-zA-Z0-9]+): (?P<reason>[^\|]+?) ?\| ?(?P<length>.+)\]"),
+			"parser":self.parse_player_banned_message
 			}
 		}
 
@@ -129,17 +190,26 @@ class ChatRelay():
 			self.FINISH = True
 
 	def send(self, content):
-		r = http.urlopen('POST', self.relay['connections']['chat_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
+		r = None
+		while not r:
+			try:
+				r = http.urlopen('POST', self.relay['connections']['chat_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
+			except:
+				continue
 		if r.data != b'':
-			f = json.loads(r.data)
-			f = f['retry_after'] / 1000
-			print(f"Being rate limited. Pausing for {f} seconds...")
+			try:
+				f = json.loads(r.data)
+				f = f['retry_after'] / 1000
+			except:
+				print("Failed to parse json response: ", r.data)
+				return
+			#print(f"Being rate limited. Pausing for {f} seconds...")
 			time.sleep(f)
-			print("Re-trying...")
+			#print("Re-trying...")
 			self.send(content)
 
 	def log_threadDISABLED(self):
-		print(f"{self.relay['server_folder']}logs/latest.log")
+		#print(f"{self.relay['server_folder']}logs/latest.log")
 		with open(f"{self.relay['server_folder']}logs/latest.log", 'r') as file:
 			out = file.readlines()
 			#? Append New data to parser_que
@@ -150,7 +220,7 @@ class ChatRelay():
 			
 
 	def log_thread(self):
-		print(f"{self.relay['server_folder']}logs/latest.log")
+		#print(f"{self.relay['server_folder']}logs/latest.log")
 		console = subprocess.Popen(["tail", "-F", f"{self.relay['server_folder']}logs/latest.log"], stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		p = select.poll()
 		p.register(console.stdout)
@@ -187,17 +257,16 @@ class ChatRelay():
 				try:
 					timestamp, prefix, thread_name, thread_id, message_type, message = regex(log_prefix, line).values()
 				except (TypeError, AttributeError):
-					print(f"Failed to parse line: {line}")
+					#print(f"Failed to parse line: {line}")
 					time.sleep(0.5)
 					continue
 
 				for k, v in self.log_formats.items():
 					if v['thread_name'] == thread_name and v['message_type'] == message_type:
-						#match = regex(v['regex'], message.strip())
 						if match := regex(v['regex'], message.strip()):
 							x = v['parser'](match)
-							print(x)
-							local_output.append(x)
+							#print(x)
+							if x: local_output.append(x)
 
 
 	def sender_thread(self):
@@ -208,7 +277,7 @@ class ChatRelay():
 			self._lock.release()
 			for message in local_que:
 				self.send(message)
-				print(f"[SENT]: {message}")
+				#print(f"[SENT]: {message}")
 
 
 

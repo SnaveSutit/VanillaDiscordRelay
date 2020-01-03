@@ -13,10 +13,10 @@ tellraw_colors = {
 	"blue":5592575,
 	"light_purple":16733695,
 	"dark_purple":11141290,
-	"white":16777215,
-	"gray":11184810,
-	"dark_gray":5592405,
-	"black":0,
+	"white":0,
+	"gray":5592405,
+	"dark_gray":11184810,
+	"black":16777215,
 }
 
 

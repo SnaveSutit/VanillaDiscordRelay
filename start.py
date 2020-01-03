@@ -17,7 +17,7 @@ config = read_json_file('config.json')
 threads = []
 
 for relay in config['relays']:
-	print(f"------ Starting Relay for {relay['name']} ------")
+	print(f"------ Starting Relays for {relay['name']} ------")
 	if relay['connections'].get('chat_relay'):
 		threads.append(threading.Thread(target=ChatRelay, args=(relay,)))
 	if relay['connections'].get('console_relay'):

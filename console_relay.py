@@ -247,17 +247,26 @@ class ConsoleRelay():
 			self.FINISH = True
 
 	def send(self, content):
-		r = http.urlopen('POST', self.relay['connections']['console_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
+		r = None
+		while not r:
+			try:
+				r = http.urlopen('POST', self.relay['connections']['console_relay']['webhook'], headers={"Content-Type":"application/json"}, body=json.dumps(content))
+			except:
+				continue
 		if r.data != b'':
-			f = json.loads(r.data)
-			f = f['retry_after'] / 1000
-			print(f"Being rate limited. Pausing for {f} seconds...")
+			try:
+				f = json.loads(r.data)
+				f = f['retry_after'] / 1000
+			except:
+				print("Failed to parse json responce: ", r.data)
+				return
+			#print(f"Being rate limited. Pausing for {f} seconds...")
 			time.sleep(f)
-			print("Re-trying...")
+			#print("Re-trying...")
 			self.send(content)
 
 	def log_threadDISABLED(self):
-		print(f"{self.relay['server_folder']}logs/latest.log")
+		#print(f"{self.relay['server_folder']}logs/latest.log")
 		with open(f"{self.relay['server_folder']}logs/latest.log", 'r') as file:
 			out = file.readlines()
 			#? Append New data to parser_que
@@ -268,7 +277,7 @@ class ConsoleRelay():
 			
 
 	def log_thread(self):
-		print(f"{self.relay['server_folder']}logs/latest.log")
+		#print(f"{self.relay['server_folder']}logs/latest.log")
 		console = subprocess.Popen(["tail", "-F", f"{self.relay['server_folder']}logs/latest.log"], stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		p = select.poll()
 		p.register(console.stdout)
@@ -305,7 +314,7 @@ class ConsoleRelay():
 				try:
 					timestamp, prefix, thread_name, thread_id, message_type, message = regex(log_prefix, line).values()
 				except (TypeError, AttributeError):
-					print(f"Failed to parse line: {line}")
+					#print(f"Failed to parse line: {line}")
 					time.sleep(0.5)
 					continue
 
@@ -313,7 +322,7 @@ class ConsoleRelay():
 					if v['thread_name'] == thread_name and v['message_type'] == message_type:
 						if match := regex(v['regex'], message.strip()):
 							x = v['parser'](match)
-							print(x)
+							#print(x)
 							local_output.append(x)
 
 
@@ -325,7 +334,7 @@ class ConsoleRelay():
 			self._lock.release()
 			for message in local_que:
 				self.send(message)
-				print(f"[SENT]: {message}")
+				#print(f"[SENT]: {message}")
 
 
 
