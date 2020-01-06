@@ -4,6 +4,7 @@ import rcon
 import json
 import select
 import urllib3
+import minecraft
 import threading
 import subprocess
 
@@ -19,6 +20,21 @@ def regex(reg, text):
 
 def clean_text(text):
 	return text.replace('"', '\\"')
+
+class Match:
+	def __init__(self, comp):
+		self.comp = comp
+	def groupdict(self):
+		return self.comp
+
+class DeathMessageDetector:
+	def __init__(self, d):
+		self.d = d
+	def match(self, text):
+		for x,y in self.d.items():
+			if x in text:
+				return Match({"death_message":x,"content":text,"pvp":y})
+
 
 class ChatRelay():
 	def parse_player_message(self, comp):
@@ -98,6 +114,11 @@ class ChatRelay():
 			.replace("$LENGTH$", comp['length'])
 		return {"content":content}
 
+	def parse_player_death_message(self, comp):
+		pvp = '<:pvp:584024528879878167>' if comp['pvp'] else ':skull_crossbones:'
+		content = f"{pvp} `{comp['content']}`"
+		return {"content":content}
+
 
 	def __init__(self, relay):
 		self.relay = relay
@@ -172,6 +193,12 @@ class ChatRelay():
 			"message_type":"INFO",
 			"regex":re.compile(r"\[\[(?P<prefix>[^\]]+)\] (?P<username>[_a-zA-Z0-9]+): Banned (?P<banned_player>[_a-zA-Z0-9]+): (?P<reason>[^\|]+?) ?\| ?(?P<length>.+)\]"),
 			"parser":self.parse_player_banned_message
+			},
+			"player_death_message":{
+			"thread_name":"Server thread",
+			"message_type":"INFO",
+			"regex":DeathMessageDetector(minecraft.death_messages),
+			"parser":self.parse_player_death_message
 			}
 		}
 
@@ -227,14 +254,14 @@ class ChatRelay():
 
 		while not self.FINISH:
 			#? If there is new data, read it
-			if p.poll(1):
+			if p.poll(1000):
 				out = console.stdout.readline()
 				#? Append New data to parser_que
 				self._lock.acquire()
 				self.parser_que.append(out)
 				self._lock.release()
 				#? Debugging
-				time.sleep(0.05)
+			time.sleep(0.05)
 
 	def parser_thread(self):
 
@@ -275,11 +302,22 @@ class ChatRelay():
 			local_que = self.sender_que
 			self.sender_que = []
 			self._lock.release()
-			for message in local_que:
+			for message in generate_clumps(local_que):
 				self.send(message)
 				#print(f"[SENT]: {message}")
 
 
+def generate_clumps(messages):
+	clumps = []
+	clump = {'content':''}
+	for message in messages:
+		clump['content'] += message['content']+'\n'
+		if len(clump['content']) > 1000:
+			clumps.append(clump)
+			clump = []
+
+	if clump['content']: clumps.append(clump)
+	return clumps
 
 
 

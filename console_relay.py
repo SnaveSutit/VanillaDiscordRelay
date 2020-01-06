@@ -332,12 +332,22 @@ class ConsoleRelay():
 			local_que = self.sender_que
 			self.sender_que = []
 			self._lock.release()
-			for message in local_que:
+			for message in generate_clumps(local_que):
 				self.send(message)
 				#print(f"[SENT]: {message}")
 
 
 
 
+def generate_clumps(messages):
+	clumps = []
+	clump = {'content':''}
+	for message in messages:
+		clump['content'] += message['content']+'\n'
+		if len(clump['content']) > 1000:
+			clumps.append(clump)
+			clump = []
 
+	if clump['content']: clumps.append(clump)
+	return clumps
 
